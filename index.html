@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>MindRisk</title>
+
+<style>
+body {
+    font-family: Arial;
+    text-align: center;
+    background: #f5f5f0;
+}
+
+.result {
+    font-size: 40px;
+    margin: 20px;
+    color: black;
+}
+
+button {
+    padding: 10px 20px;
+    margin: 5px;
+    cursor: pointer;
+    border: 1px solid black;
+    background: white;
+}
+
+.active {
+    background: black;
+    color: white;
+}
+
+.group {
+    margin: 20px;
+}
+
+.status {
+    font-size: 14px;
+    color: gray;
+}
+
+#tradeBtn {
+    padding: 12px 20px;
+    margin: 15px;
+    font-size: 16px;
+    border: none;
+    background: green;
+    color: white;
+}
+
+.locked {
+    background: gray !important;
+    cursor: not-allowed;
+}
+
+.dashboard {
+    margin-top: 40px;
+    padding: 20px;
+    background: white;
+    border-top: 2px solid black;
+}
+</style>
+
+</head>
+
+<body>
+
+<h1>MindRisk</h1>
+
+<p id="info">🧠 Triff eine bewusste Entscheidung</p>
+<p id="recommendation"></p>
+<div class="result" id="state">-</div>
+
+<button onclick="check()">✅ CHECK</button>
+<button onclick="reset()">🔄 RESET</button>
+<button id="tradeBtn">🚀 TRADE AUSFÜHREN</button>
+
+<div class="group">
+<h3>Setup vorhanden?</h3>
+<button id="setup-true" onclick="setValue('setup', true)">JA</button>
+<button id="setup-false" onclick="setValue('setup', false)">NEIN</button>
+<p class="status" id="setup-status">❌</p>
+</div>
+
+<div class="group">
+<h3>Trade geplant?</h3>
+<button id="trade-true" onclick="setValue('trade', true)">JA</button>
+<button id="trade-false" onclick="setValue('trade', false)">NEIN</button>
+<p class="status" id="trade-status">❌</p>
+</div>
+
+<div class="group">
+<h3>Plan klar?</h3>
+<button id="plan-true" onclick="setValue('plan', true)">JA</button>
+<button id="plan-false" onclick="setValue('plan', false)">NEIN</button>
+<p class="status" id="plan-status">❌</p>
+</div>
+
+<div class="group">
+<h3>Trigger</h3>
+<button id="fomo" onclick="toggleTrigger('fomo')">FOMO</button>
+<button id="rache" onclick="toggleTrigger('rache')">Rache</button>
+<button id="druck" onclick="toggleTrigger('druck')">Druck</button>
+<button id="zweifel" onclick="toggleTrigger('zweifel')">Zweifel</button>
+<button id="ungeduld" onclick="toggleTrigger('ungeduld')">Ungeduld</button>
+<button id="gier" onclick="toggleTrigger('gier')">Gier</button>
+</div>
+
+<div class="dashboard">
+<h2>📊 Dashboard</h2>
+<p>Gesamt: <span id="total">0</span></p>
+<p>🔴 Impuls: <span id="impuls">0</span></p>
+<p>🟢 Disziplin: <span id="disziplin">0</span></p>
+<p>🟡 FOMO: <span id="fomoCount">0</span></p>
+<p>🟠 Rache: <span id="racheCount">0</span></p>
+
+<h3>🧠 Analyse</h3>
+<p id="analysis">Keine Daten</p>
+
+<button onclick="clearHistory()">🗑️ Verlauf löschen</button>
+</div>
+
+<script>
+
+let setup=null, trade=null, plan=null;
+
+let trigger={
+fomo:false,rache:false,druck:false,zweifel:false,ungeduld:false,gier:false
+};
+
+function setValue(type,value){
+if(type==="setup") setup=value;
+if(type==="trade") trade=value;
+if(type==="plan") plan=value;
+
+updateButtons();
+}
+
+function updateButtons(){
+
+document.getElementById("setup-true").classList.toggle("active", setup===true);
+document.getElementById("setup-false").classList.toggle("active", setup===false);
+
+document.getElementById("trade-true").classList.toggle("active", trade===true);
+document.getElementById("trade-false").classList.toggle("active", trade===false);
+
+document.getElementById("plan-true").classList.toggle("active", plan===true);
+document.getElementById("plan-false").classList.toggle("active", plan===false);
+
+document.getElementById("setup-status").innerText=setup===null?"❌":"✅";
+document.getElementById("trade-status").innerText=trade===null?"❌":"✅";
+document.getElementById("plan-status").innerText=plan===null?"❌":"✅";
+}
+
+function toggleTrigger(t){
+trigger[t]=!trigger[t];
+document.getElementById(t).classList.toggle("active");
+}
+
+function getState(){
+
+if(setup===null||trade===null||plan===null){
+return "WAIT";
+}
+
+if(trigger.rache) return "RACHE";
+if(trigger.fomo) return "FOMO";
+
+if(trigger.druck||trigger.ungeduld||trigger.gier){
+return "IMPULS";
+}
+
+if(trigger.zweifel&&trade) return "UNSICHER";
+if(trigger.zweifel&&!trade) return "OVERTHINK";
+
+if(!setup) return "NO SETUP";
+if(!trade) return "NEUTRAL";
+
+if(setup&&trade&&plan&&!Object.values(trigger).includes(true)){
+return "DISZIPLIN";
+}
+
+return "NEUTRAL";
+}
+
+function check(){
+
+let state=getState();
+
+saveTrade(state);
+updateDashboard();
+
+document.getElementById("state").innerText=state;
+
+// 🔥 GETRENNTE EMPFEHLUNG
+if(["FOMO","RACHE","IMPULS"].includes(state)){
+document.getElementById("info").innerText="⛔ 10 Min Pause";
+document.getElementById("recommendation").innerText="🧘 3 tiefe Atemzüge";
+}else{
+document.getElementById("info").innerText="";
+document.getElementById("recommendation").innerText="";
+}
+
+// Farbe
+let color="black";
+if(state==="DISZIPLIN") color="green";
+if(["IMPULS","RACHE"].includes(state)) color="red";
+if(state==="FOMO") color="orange";
+
+document.getElementById("state").style.color=color;
+
+let tradeBtn=document.getElementById("tradeBtn");
+
+if(["FOMO","RACHE","IMPULS","NO SETUP"].includes(state)){
+tradeBtn.classList.add("locked");
+tradeBtn.innerText="⏸ Pause einlegen";
+}else{
+tradeBtn.classList.remove("locked");
+tradeBtn.innerText="🚀 Trade ausführen";
+}
+}
+
+// 🔥 WICHTIGSTE ÄNDERUNG
+function saveTrade(state){
+let h=JSON.parse(localStorage.getItem("mindrisk_history"))||[];
+
+h.push({
+state: state,
+trigger: {...trigger}
+});
+
+localStorage.setItem("mindrisk_history",JSON.stringify(h));
+}
+
+function updateDashboard(){
+
+let h=JSON.parse(localStorage.getItem("mindrisk_history"))||[];
+
+let impuls=0,disziplin=0,fomo=0,rache=0;
+
+h.forEach(e=>{
+
+if(["IMPULS","FOMO","RACHE"].includes(e.state)) impuls++;
+if(e.state==="DISZIPLIN") disziplin++;
+
+// 🔥 TRIGGER AUSWERTUNG
+if(e.trigger?.fomo) fomo++;
+if(e.trigger?.rache) rache++;
+
+});
+
+document.getElementById("total").innerText=h.length;
+document.getElementById("impuls").innerText=impuls;
+document.getElementById("disziplin").innerText=disziplin;
+document.getElementById("fomoCount").innerText=fomo;
+document.getElementById("racheCount").innerText=rache;
+
+let text="Stabil";
+
+if(impuls>disziplin) text="⚠️ Du handelst zu impulsiv";
+if(impuls>=5) text="🚨 Stop! Pause machen";
+
+// 🔥 BONUS: TOP TRIGGER
+if(fomo>rache && fomo>0){
+text += " | Hauptproblem: FOMO";
+}
+if(rache>fomo && rache>0){
+text += " | Hauptproblem: Rache";
+}
+
+document.getElementById("analysis").innerText=text;
+}
+
+function clearHistory(){
+localStorage.removeItem("mindrisk_history");
+updateDashboard();
+}
+
+function reset(){
+
+setup=null;trade=null;plan=null;
+
+trigger={fomo:false,rache:false,druck:false,zweifel:false,ungeduld:false,gier:false};
+
+document.getElementById("state").innerText="-";
+document.getElementById("state").style.color="black";
+
+document.getElementById("info").innerText="🧠 Neue Entscheidung";
+document.getElementById("recommendation").innerText="";
+
+Object.keys(trigger).forEach(t=>{
+document.getElementById(t).classList.remove("active");
+});
+
+let tradeBtn=document.getElementById("tradeBtn");
+tradeBtn.classList.remove("locked");
+tradeBtn.innerText="🚀 Trade ausführen";
+
+updateButtons();
+}
+
+updateButtons();
+updateDashboard();
+
+</script>
+
+</body>
+</html>
